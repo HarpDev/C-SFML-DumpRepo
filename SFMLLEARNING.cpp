@@ -22,7 +22,7 @@ int main()
     VideoMode vm(1920, 1080);
 
     RenderWindow window(vm, "Timber!!!", Style::Default);
-    bool paused = false;
+    bool paused = true;
     bool gameover = false;
     //draw score
     int score = 0;
@@ -91,7 +91,7 @@ int main()
 
     //gravestone 
     Texture textureGraveStone;
-    textureGraveStone.loadFromFile("graphics/gravestone.png");
+    textureGraveStone.loadFromFile("graphics/TBHStaticIdle.png");
     Sprite spriteGravestone;
     spriteGravestone.setTexture(textureGraveStone);
     spriteGravestone.setPosition(600, 860);
@@ -121,10 +121,10 @@ int main()
     float logSpeedX = 1000;
     float logSpeedY = -1500;
     
-
+     
     Texture textureBackround;
     //load graphic onto texture
-    textureBackround.loadFromFile("Graphics/Zen.jpg");
+    textureBackround.loadFromFile("Graphics/forest.jpg");
 
     //Create sprite for texture
     Sprite spriteBackround;
@@ -209,6 +209,19 @@ int main()
         updateBranches(4);
         updateBranches(5);
       
+
+
+
+
+        //control player input
+        bool acceptInput = false;
+
+
+        //Lives
+        int TotalLives = 3;
+        int currentLives = 0;
+
+
         
     while (window.isOpen())
     {
@@ -217,7 +230,18 @@ int main()
             Player Input
         ************************/
         
+        Event event;
+        //detecting if key has been released
+        while (window.pollEvent(event)) {
+            if (event.type == Event::KeyReleased && !paused) {
+                //listen for key presses again
+                acceptInput = true;
 
+                //hide axe
+                spriteAxe.setPosition(2000, spriteAxe.getPosition().y);
+            }
+
+        }
 
         //Exit Application
         if (Keyboard::isKeyPressed(Keyboard::Escape)) {
@@ -227,22 +251,81 @@ int main()
 
             Update the Scene
         ************************/
-        /*
-        if (Keyboard::isKeyPressed(Keyboard::Enter))
+        
+        // Start the game
+        if (Keyboard::isKeyPressed(Keyboard::Return))
         {
-            if (!paused) {
-                paused = true;
-                MessageText.setString("Press ENTER to start!");
-            }
-            else {
-                paused = false;
-                // score = 0;
-                 //timeRemaining = 0;
-                MessageText.setString("  ");
+            paused = false;
+
+            // Reset the time, score, and health
+            score = 0;
+            timeRemaining = 6;
+            currentLives = TotalLives;
+            // Make all the branches disappear
+            for (int i = 1; i < NUM_BRANCHES; i++)
+            {
+                branchPositions[i] = side::NONE;
             }
 
+            // Make sure the gravestone is hidden
+            spriteGravestone.setPosition(675, 2000);
+
+            // Move the player into position
+            spritePlayer.setPosition(580, 720);
+
+            acceptInput = true;
+
+
         }
-        */
+        //wrap player controls
+        //to make sure we are
+        //understanding input
+        if (acceptInput) {
+            //Handling pressing right cursor key
+            if (Keyboard::isKeyPressed(Keyboard::Right)) {
+                //make sure player is on the righthand side of the screen
+                playerSide = side::RIGHT;
+                score++;
+
+                //add to amount of time remaining 
+                timeRemaining += (2 / score) + .15;
+                spriteAxe.setPosition(AXE_POSITION_RIGHT, spriteAxe.getPosition().y);
+                spritePlayer.setPosition(1200, 720);
+
+                //update branches
+                updateBranches(score);
+
+                //Set log flying to the left
+                spriteLog.setPosition(810, 720);
+                logSpeedX = -5000;
+                logActive = true;
+
+                acceptInput = false;
+            }
+            // handle pressing left cursor key
+            if (Keyboard::isKeyPressed(Keyboard::Left)) {
+                //make sure player is on the righthand side of the screen
+                playerSide = side::LEFT;
+                score++;
+
+                //add to amount of time remaining 
+                timeRemaining += (2 / score) + .15;
+                spriteAxe.setPosition(AXE_POSITION_LEFT, spriteAxe.getPosition().y);
+                spritePlayer.setPosition(580, 720);
+
+                //update branches
+                updateBranches(score);
+
+                //Set log flying to the left
+                spriteLog.setPosition(810, 720);
+                logSpeedX = 5000;
+                logActive = true;
+
+                acceptInput = false;
+            }
+        }
+        
+        
         if (Keyboard::isKeyPressed(Keyboard::Enter))
         {
             if (!gameover) {
@@ -278,6 +361,11 @@ int main()
                 MessageText.setPosition(1920 / 2.0f, 1080 / 2.0f);
 
             }
+
+           
+                MessageText.setString("");//remove text 4 starting game
+
+            
 
             if (!beeActive)
             {
@@ -385,33 +473,83 @@ int main()
             ss << "Score =  " << score;
             scoreText.setString(ss.str());
 
-            //update branch sprites
-            for (int i = 0; i < NUM_BRANCHES; i++) {
+            // update the branch sprites
+            for (int i = 0; i < NUM_BRANCHES; i++)
+            {
 
-                float height = i + 150;
+                float height = i * 150;
 
-                if (branchPositions[i] == side::LEFT) {
-                    //Move Sprite to Left Side
+                if (branchPositions[i] == side::LEFT)
+                {
+                    // Move the sprite to the left side
                     branches[i].setPosition(610, height);
-
-                    //flip sprite round the other way
+                    // Flip the sprite round the other way
+                    branches[i].setOrigin(220, 40);
                     branches[i].setRotation(180);
                 }
                 else if (branchPositions[i] == side::RIGHT)
-                    {
-                        //Move Sprite to Left Side
-                        branches[i].setPosition(1330, height);
+                {
+                    // Move the sprite to the right side
+                    branches[i].setPosition(1330, height);
+                    // Set the sprite rotation to normal
+                    branches[i].setOrigin(220, 40);
+                    branches[i].setRotation(0);
 
-                        //flip sprite round the other way
-                        branches[i].setRotation(0);
-                    }
-                else {
-                    //hide
+                }
+                else
+                {
+                    // Hide the branch
                     branches[i].setPosition(3000, height);
                 }
+            }
+            // Handle a flying log				
+            if (logActive)
+            {
+
+                spriteLog.setPosition(
+                    spriteLog.getPosition().x + (logSpeedX * dt.asSeconds()),
+                    spriteLog.getPosition().y + (logSpeedY * dt.asSeconds()));
+
+                // Has the insect reached the right hand edge of the screen?
+                if (spriteLog.getPosition().x < -100 ||
+                    spriteLog.getPosition().x > 2000)
+                {
+                    // Set it up ready to be a whole new cloud next frame
+                    logActive = false;
+                    spriteLog.setPosition(810, 720);
+                }
+            }
+            // has the player been squished by a branch?
+            if (branchPositions[5] == playerSide)
+            {
+                // death
+                paused = true;
+                acceptInput = false;
+
+                // Draw the gravestone
+                spriteGravestone.setPosition(525, 760);
+
+                // hide the player
+                spritePlayer.setPosition(2000, 660);
+
+                // Change the text of the message
+                MessageText.setString("SQUISHED!!");
+
+                // Center it on the screen
+                FloatRect textRect = MessageText.getLocalBounds();
+
+                MessageText.setOrigin(textRect.left +
+                    textRect.width / 2.0f,
+                    textRect.top + textRect.height / 2.0f);
+
+                MessageText.setPosition(1920 / 2.0f,
+                    1080 / 2.0f);
+
+                // Play the death sound
+                //death.play();
+
 
             }
-
         }
         /***********************
             Draw the Scene
@@ -427,6 +565,15 @@ int main()
         //window.draw(spriteBee);
 
         window.draw(spriteTree);
+
+        window.draw(spritePlayer);
+
+        window.draw(spriteAxe);
+
+        window.draw(spriteLog);
+
+        window.draw(spriteGravestone);
+
         
         for (int i = 0; i < NUM_BRANCHES; i++)
         {
@@ -459,30 +606,33 @@ int main()
 } 
 
 
-// Function definition: updateBranches()
+
+// Function definition
 void updateBranches(int seed)
 {
-    // move all branches down one place
-    for (int j = NUM_BRANCHES - 1; j > 0; j--)
-    {
+    // Move all the branches down one place
+    for (int j = NUM_BRANCHES - 1; j > 0; j--) {
         branchPositions[j] = branchPositions[j - 1];
     }
 
-    // spawn a new branch at position 0
-    // left, right, none
+    // Spawn a new branch at position 0
+    // LEFT, RIGHT or NONE
     srand((int)time(0) + seed);
     int r = (rand() % 5);
-    switch (r)
-    {
+
+    switch (r) {
     case 0:
         branchPositions[0] = side::LEFT;
         break;
+
     case 1:
         branchPositions[0] = side::RIGHT;
         break;
+
     default:
         branchPositions[0] = side::NONE;
         break;
     }
+
 
 }
